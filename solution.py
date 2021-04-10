@@ -4,6 +4,7 @@ import sys
 import struct
 import time
 import select
+import statistics
 import binascii
 # Should use stdev
 
@@ -49,12 +50,14 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
 
         # Fill in start
         icmpHeader = recPacket[20:28]
+
         type, code, checksum, packetId, seq = struct.unpack("bbHHh", icmpHeader)
 
         if (packetId == ID):
             bytesInDouble = struct.calcsize("d")
             timeStart = struct.unpack("d",recPacket[28:28 + bytesInDouble])[0]
-            return timeReceived - timeStart
+            timeUsed = (timeReceived - timeStart) * 1000
+            return timeUsed
         # Fetch the ICMP header from the IP packet
 
         # Fill in end
@@ -109,6 +112,7 @@ def doOnePing(destAddr, timeout):
 def ping(host, timeout=1):
     # timeout=1 means: If one second goes by without a reply from the server,  	# the client assumes that either the client's ping or the server's pong is lost
     dest = gethostbyname(host)
+    delayes = []
     # print("Pinging " + dest + " using Python:")
     # print("")
     # Calculate vars values and return them
@@ -116,9 +120,14 @@ def ping(host, timeout=1):
     # Send ping requests to a server separated by approximately one second
     for i in range(0,4):
         delay = doOnePing(dest, timeout)
+        delayes.append(delay)
         # print(delay)
         time.sleep(1)  # one second
-
+    minDelay = min(delayes)
+    avgDelay = sum(delayes) / len(delayes)
+    maxDelay = max(delayes)
+    stdevDelay = statistics.pstdev(delayes)
+    vars = [round(minDelay, 2), round(avgDelay, 2), round(maxDelay, 2), round(stdevDelay, 2)]
     return vars
 
 if __name__ == '__main__':
